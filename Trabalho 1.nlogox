@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <model version="NetLogo 7.0.0" snapToGrid="true">
-  <code>breed[fogos fogo]
+  <code><![CDATA[breed[fogos fogo]
 breed[bombeiros bombeiro]
 breed[vitimas vitima]
 
-globals [nSafeZones]
+bombeiros-own [rescue x-safe y-safe]
+patches-own [tem-vitima tem-fogo]
+
+globals [SafeZones]
 
 to Setup
   clear-all
@@ -14,25 +17,31 @@ to Setup
 end
 
 to GO
-  
+  ask bombeiros
+  [
+    show(word "Sou Bombeiro com id: " who ", my rescue mission is " rescue " and my position is (" xcor "," ycor ")")
+     if color = white
+    [
+    set heading towardsxy 0 0
+    if distancexy 0 0 > 1
+      [
+        fd 1
+        set rescue 1
+      ]
+    ]
+    check-rescue
+  ]
 end
+
 
 to setup-floor
   ask patches
   [
     set pcolor brown
-    setxy random 30 random 30 [color = black]
   ]
   
 end
   
-to setup-fire
-
-end
-
-to setup-safe
-  
-end
 
 to setup-turtles
   create-fogos nfogos
@@ -40,29 +49,69 @@ to setup-turtles
     set shape "fire"
     set heading 0
     setxy random-xcor random-ycor
+    
   ]
   create-bombeiros nbombeiros
   [
     set shape "firefighter"
     set color white
+    set rescue 0
     setxy random-xcor random-ycor
+    set label who
   ]
   create-vitimas nvitimas
   [
     set shape "person"
     set color green
     setxy random-xcor random-ycor
+    ask patch-here
+    [
+      set tem-vitima true 
+    ]
   ]
 end
 
-</code>
+
+to check-rescue
+    ask patch-here
+    [
+      if (tem-vitima = true)
+      [
+        show(word "encontrei")
+      setup-calculate-safezone
+      setup-go-safezone
+      ]
+    ]
+end
+
+
+
+to setup-fire
+
+end
+
+to setup-safe
+
+end
+
+to setup-calculate-safezone
+end
+
+to setup-go-safezone
+end]]></code>
   <widgets>
-    <view x="368" wrappingAllowedX="true" y="10" frameRate="30.0" minPycor="-16" height="665" showTickCounter="true" patchSize="20.0" fontSize="10" wrappingAllowedY="true" width="665" tickCounterLabel="ticks" maxPycor="16" updateMode="0" maxPxcor="16" minPxcor="-16"></view>
-    <slider x="20" step="1" y="30" max="100" width="250" display="nbombeiros" height="50" min="0" direction="Horizontal" default="53.0" variable="nbombeiros"></slider>
-    <slider x="20" step="1" y="100" max="100" width="250" display="nvitimas" height="50" min="0" direction="Horizontal" default="46.0" variable="nvitimas"></slider>
+    <view x="368" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="-20" height="829" showTickCounter="true" patchSize="20.0" fontSize="10" wrappingAllowedY="false" width="829" tickCounterLabel="ticks" maxPycor="20" updateMode="0" maxPxcor="20" minPxcor="-20"></view>
+    <slider x="20" step="1" y="30" max="100" width="250" display="nbombeiros" height="50" min="0" direction="Horizontal" default="100.0" variable="nbombeiros"></slider>
+    <slider x="20" step="1" y="100" max="100" width="250" display="nvitimas" height="50" min="0" direction="Horizontal" default="100.0" variable="nvitimas"></slider>
     <button x="275" y="30" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="55">Setup</button>
-    <button x="275" y="75" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="55">GO</button>
-    <slider x="20" step="1" y="165" max="100" width="250" display="nfogos" height="50" min="0" direction="Horizontal" default="53.0" variable="nfogos"></slider>
+    <button x="275" y="75" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="56">GO</button>
+    <slider x="20" step="1" y="165" max="100" width="250" display="nfogos" height="50" min="0" direction="Horizontal" default="0.0" variable="nfogos"></slider>
+    <chooser x="10" y="455" height="60" variable="Disaster" current="0" display="Disaster" width="250" sizeVersion="0">
+      <choice type="string" value="More-Smoke-obstacles"></choice>
+      <choice type="string" value="Health-ticks-faster"></choice>
+      <choice type="string" value="Oxigen-tanks-malfunction"></choice>
+    </chooser>
+    <slider x="20" step="1" y="235" max="5" width="250" display="nsafezones" height="50" min="0" direction="Horizontal" default="0.0" variable="nsafezones"></slider>
   </widgets>
   <info>## WHAT IS IT?
 
