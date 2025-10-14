@@ -27,11 +27,10 @@ end
 to go
   ifelse(count vitimas != 0)
   [
-    display-labels
     ;vitima-grita
     MoveBombeiros
+    comunicar
     MoveVitimas
-    ;Csmoke
   ]
   [
     ask bombeiros 
@@ -43,9 +42,12 @@ to go
       ]
     ]
   ]
-  ask bombeiros [show salvo]
-  if(ticks = 10000 or (all? bombeiros [salvo = 0] and count vitimas = 0)) [stop]
+  display-labels
+  Csmoke
+  ;Cobs
+  ;if(ticks = 10000 or (all? bombeiros [salvo = 0] and count vitimas = 0)) [stop]
   tick
+
 end
 
 to setup-turtles
@@ -111,12 +113,50 @@ to MoveBombeiros
 end
 
 to FreeWalk
+  let anel1 neighbors
+  let anel2 patches at-points [[ 2  0] [-2  0] [ 0  2] [ 0 -2][ 2  2] [ 2 -2] [-2  2] [-2 -2]]
+  
+  let vizinhos (patch-set anel1 anel2)
+  if( any? vitimas-on vizinhos)
+  [
+    face one-of vitimas-on vizinhos
+  ]
   ifelse(patch-ahead 1 != nobody AND [pcolor] of patch-ahead 1 != white)
   [
     fd 1
   ] 
   [
-    rt 90
+    rt random 360
+  ]
+  
+end
+
+to comunicar
+  ask bombeiros [
+    let anel1 neighbors
+    let anel2 patches at-points [[ 2  0] [-2  0] [ 0  2] [ 0 -2][ 2  2] [ 2 -2] [-2  2] [-2 -2]]
+    let vizinhos (patch-set anel1 anel2)
+    if (salvo = cap) [
+      if any? vitimas-on vizinhos
+      [
+        set x-vit [pxcor] of one-of vitimas-on vizinhos
+        set y-vit [pycor] of one-of vitimas-on vizinhos
+        show x-vit
+      ]
+      
+      let recetores other bombeiros in-radius 2 with [salvo < cap and x-vit = 0 and y-vit = 0]
+      if any? recetores 
+      [
+        ask one-of recetores 
+        [
+          set x-vit [x-vit] of myself
+          set y-vit [y-vit] of myself
+          face patch x-vit y-vit 
+        ]
+        set x-vit 0
+        set y-vit 0
+      ]
+    ]
   ]
 end
 
@@ -131,7 +171,7 @@ to VaiParaSafe
   [
     while [patch-ahead 1 = nobody and [pcolor] of patch-ahead 1 = white]
     [
-    rt 90
+    rt random 90
     ]
     fd 1
   ]
@@ -146,14 +186,13 @@ to VaiParaSafe
 end
 
 to VaiSalvar
-  ;face patch x-vit y-vit
+  face patch x-vit y-vit
   ifelse (patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white) 
   [
     fd 1
   ]
   [
     rt random 90
-    
   ]
 end
 
@@ -185,7 +224,18 @@ end
 to MoveVitimas
   ask vitimas
   [
+    if vitimamove?
+    [
+    ifelse (patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 = black) 
+    [
+      fd 1 * (energia / 100)
+    ]
+    [
+      rt  random 90
+    ]
+    ]
     set energia energia - 1
+    if pcolor = gray [set energia energia - 1]
     if energia <= 0 
     [
       set vitimasmortas vitimasmortas + 1
@@ -266,12 +316,28 @@ to setup-patches
 end
 
 to Csmoke
-  if random 1000 > 999
+  if random 1000 > 995
   [
     ask one-of patches with [pcolor = black] 
     [
       set pcolor grey
     ]
+  ]
+end
+
+to Cobs
+  if random 1000 > 997
+  [
+    ask one-of patches with [pcolor = black] 
+    [
+      set pcolor white    
+      ask vitimas-here 
+      [
+        set vitimasmortas vitimasmortas + 1
+        die
+      ]
+    ]
+    
   ]
 end
 
@@ -310,10 +376,10 @@ end
   <widgets>
     <view x="530" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="-15" height="469" showTickCounter="true" patchSize="15.0" fontSize="10" wrappingAllowedY="false" width="469" tickCounterLabel="ticks" maxPycor="15" updateMode="0" maxPxcor="15" minPxcor="-15"></view>
     <button x="20" y="55" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="500">GO</button>
-    <slider x="275" step="1" y="105" max="100" width="245" display="nvitimas" height="50" min="0" direction="Horizontal" default="25.0" variable="nvitimas"></slider>
-    <slider x="20" step="1" y="105" max="100" width="245" display="nbombeiros" height="50" min="1" direction="Horizontal" default="40.0" variable="nbombeiros"></slider>
+    <slider x="275" step="1" y="105" max="100" width="245" display="nvitimas" height="50" min="0" direction="Horizontal" default="100.0" variable="nvitimas"></slider>
+    <slider x="20" step="1" y="105" max="100" width="245" display="nbombeiros" height="50" min="0" direction="Horizontal" default="0.0" variable="nbombeiros"></slider>
     <slider x="20" step="1" y="160" max="100" width="245" display="nfogos" height="50" min="0" direction="Horizontal" default="11.0" variable="nfogos"></slider>
-    <slider x="275" step="1" y="160" max="5" width="245" display="nsafezones" height="50" min="0" direction="Horizontal" default="1.0" variable="nsafezones"></slider>
+    <slider x="275" step="1" y="160" max="5" width="245" display="nsafezones" height="50" min="0" direction="Horizontal" default="5.0" variable="nsafezones"></slider>
     <chooser x="20" y="220" height="60" variable="Disaster" current="2" display="Disaster" width="500" sizeVersion="0">
       <choice type="string" value="More-Smoke-obstacles"></choice>
       <choice type="string" value="Health-ticks-faster"></choice>
@@ -331,6 +397,7 @@ end
     <monitor x="1165" precision="17" y="95" height="60" fontSize="11" width="100" display="Bombeiros">count bombeiros</monitor>
     <monitor x="1165" precision="17" y="165" height="60" fontSize="11" width="100" display="Vitimas Salvas">Vsalvas</monitor>
     <monitor x="1030" precision="17" y="25" height="60" fontSize="11" width="100" display="Vitimas Mortas">vitimasmortas</monitor>
+    <switch x="285" y="370" height="40" on="true" variable="vitimamove?" width="100" display="vitimamove?"></switch>
   </widgets>
   <info>## WHAT IS IT?
 
