@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <model version="NetLogo 7.0.0" snapToGrid="true">
   <code><![CDATA[
-breed[fogos fogo]
 breed[bombeiros bombeiro]
 breed[vitimas vitima]
 breed[oxygenTanks oxygen]
 
-bombeiros-own [rescue cap salvo x-safe y-safe x-vit y-vit]
-patches-own [tem-vitima tem-fogo]
+bombeiros-own [CapBombeiro VitimasApanhadas x-safe y-safe x-vit y-vit]
+
 
 turtles-own [energia]
 
-globals [zone cont Vsalvas vitimasmortas]
+globals [Varzone cont Vsalvas vitimasmortas bombeirosmortos]
 
 
 to setup
@@ -20,32 +19,34 @@ to setup
   setup-patches
   setup-turtles
   
+  set bombeirosmortos 0
   set vitimasmortas 0
   set Vsalvas 0
 end
 
 to go
-  ifelse(count vitimas != 0)
+  ifelse count vitimas != 0
   [
-    display-labels
-    ;vitima-grita
     MoveBombeiros
     MoveVitimas
-    ;Csmoke
   ]
   [
     ask bombeiros 
     [
-      if (pcolor != green)
-      [
       VaiParaSafe   
       set energia energia - 1
+      if energia <= 0 
+      [
+        set bombeirosmortos bombeirosmortos + 1
+        die
       ]
     ]
   ]
-  ask bombeiros [show salvo]
-  if(ticks = 10000 or (all? bombeiros [salvo = 0] and count vitimas = 0)) [stop]
+  display-labels
+  
+  if ticks = 5000 or (all? bombeiros [VitimasApanhadas = 0] and count vitimas = 0) [stop]
   tick
+  
 end
 
 to setup-turtles
@@ -53,15 +54,13 @@ to setup-turtles
   
   create-bombeiros nbombeiros
   [
-    set cap capacidade
+    set CapBombeiro LimiteCapacidade
     set shape "firefighter"
     set color red
-    set salvo 0
-    set rescue 0
+    set VitimasApanhadas 0
     set x-vit 0
     set y-vit 0
-    set energia 100
-    set cap capacidade
+    set energia nEnergiaVitima
     set label who
     move-to one-of patches with [pcolor = green]
     set x-safe pxcor
@@ -73,15 +72,11 @@ to setup-turtles
   [
     set shape "person"
     set color yellow
-    set energia 100
+    set energia nEnergiaVitima + random 20
     setxy random-xcor random-ycor
     while [ [pcolor] of patch-here != black]       
     [
       setxy random-xcor random-ycor
-    ]
-    ask patch-here
-    [
-      set tem-vitima true 
     ]
   ]
   display-labels
@@ -91,32 +86,65 @@ to MoveBombeiros
   
   ask bombeiros
   [
-    ifelse (salvo = cap) 
+    ifelse energia < 30
     [
-      VaiParaSafe
-      set energia energia - 1
+      Oxigenio
     ]
     [
-      check-rescue
-      FreeWalk
-      set energia energia - 1
+      ifelse VitimasApanhadas = CapBombeiro
+      [
+        VaiParaSafe
+        set energia energia - 1
+      ]
+      [
+        check-rescue
+        FreeWalk
+        set energia energia - 1
+      ]
     ]
-    if pcolor = green [set energia 100]
-    if energia <= 50 and pcolor = blue [set energia energia + 50 set pcolor black]
-    if energia = 0 
+    
+    if pcolor = green
     [
+      set energia 100
+    ]
+    
+    if energia <= 0 
+    [
+      set bombeirosmortos bombeirosmortos + 1
       die
     ]
+    
   ]
 end
 
 to FreeWalk
-  ifelse(patch-ahead 1 != nobody AND [pcolor] of patch-ahead 1 != white)
+  let anel1 neighbors
+  let anel2 patches at-points [[ 2  0] [-2  0] [ 0  2] [ 0 -2][ 2  2] [ 2 -2] [-2  2] [-2 -2]]
+  
+  let vizinhos (patch-set anel1 anel2)
+  ifelse any? vitimas-on vizinhos
   [
-    fd 1
-  ] 
+    face min-one-of vitimas-on vizinhos [energia]
+    ifelse patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white and [pcolor] of patch-ahead 1 != red
+    [
+      fd 1
+    ] 
+    [
+      rt random 90
+      if patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white and [pcolor] of patch-ahead 1 != red
+      [
+        fd 1
+      ] 
+    ]
+  ]
   [
-    rt 90
+    ifelse patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white
+    [
+      fd 1
+    ] 
+    [
+      rt random 360
+    ]
   ]
 end
 
@@ -124,14 +152,14 @@ end
 to VaiParaSafe
   ;; o bombeiro vai para a sua safezone (x-safe, y-safe)
   face patch x-safe y-safe
-  ifelse (patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white)
+  ifelse patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white and [pcolor] of patch-ahead 1 != red
   [
     fd 1
   ]
   [
-    while [patch-ahead 1 = nobody and [pcolor] of patch-ahead 1 = white]
+    while [patch-ahead 1 = nobody and [pcolor] of patch-ahead 1 = white and [pcolor] of patch-ahead 1 != red]
     [
-    rt 90
+      rt random 90
     ]
     fd 1
   ]
@@ -139,46 +167,55 @@ to VaiParaSafe
   
   if [pcolor] of patch-here = green
   [
-    set Vsalvas Vsalvas + salvo
-    set salvo 0
-    set rescue 0
+    set Vsalvas Vsalvas + VitimasApanhadas
+    set VitimasApanhadas 0
   ]
 end
 
 to VaiSalvar
-  ;face patch x-vit y-vit
-  ifelse (patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white) 
+  face patch x-vit y-vit
+  ifelse patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white
   [
     fd 1
   ]
   [
     rt random 90
-    
   ]
 end
 
 to Oxigenio
-  let PATCHaVOLTA patches at-points [[2 0] [-2 0] [0 2] [0 -2] [2 2] [2 -2] [-2 2] [-2 -2]]
-  let tanque one-of (PATCHaVOLTA with [pcolor = blue])
+  let anel1 neighbors
+  let anel2 patches at-points [[ 2  0] [-2  0] [ 0  2] [ 0 -2][ 2  2] [ 2 -2] [-2  2] [-2 -2]]
+  let vizinhos (patch-set anel1 anel2)
+  let tanque one-of vizinhos with [pcolor = blue or pcolor = green]
   
   ifelse tanque != nobody 
   [
     face tanque
-    ifelse (patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white) 
+    ifelse patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white
     [
       fd 1
     ]
     [
       rt  90
+      if patch-ahead 1 != nobody and [pcolor] of patch-ahead 1 != white
+      [
+        fd 1
+      ]
     ]
   ] 
   [
     FreeWalk
   ]
-  if (pcolor = blue) 
+  if pcolor = blue 
   [
-    set energia energia + 50
     set pcolor black
+    set energia energia + 50
+  ]
+  
+  if pcolor = green 
+  [
+    set energia 100
   ]
 end
 
@@ -186,6 +223,7 @@ to MoveVitimas
   ask vitimas
   [
     set energia energia - 1
+    
     if energia <= 0 
     [
       set vitimasmortas vitimasmortas + 1
@@ -195,29 +233,11 @@ to MoveVitimas
 end
 
 
-to vitima-grita
-  let PATCHaVOLTA patches at-points [[2 0] [-2 0] [0 2] [0 -2] [2 2] [2 -2] [-2 2] [-2 -2]]
-  let bombeirosavolta bombeiros-on PATCHaVOLTA
-  
-  ask vitimas [
-    
-    if any? bombeirosavolta
-    [
-      ask one-of bombeirosavolta
-      [
-        face myself
-        set x-vit [pxcor] of myself
-        set y-vit [pycor] of myself
-      ]
-    ]
-  ]
-end
-
 to check-rescue
   if any? vitimas-here
       [
         ask one-of vitimas-here [die]
-        set salvo salvo + 1
+        set VitimasApanhadas VitimasApanhadas + 1
         set x-vit 0
         set y-vit 0
   ]
@@ -226,23 +246,22 @@ end
 ;;;;;;; AMBIENTE
 
 to setup-patches
-  
   ;Meter o patches todos pretos  
   ask patches [set pcolor black]
   
   ;Patches da base a verde - verifica a condição de não ser na borda do mapa - consante o slide podemos fazer mais safezones
   
-  set zone nsafezones 
-  while[zone != 0]
+  set Varzone nsafezones 
+  while[Varzone != 0]
   [
-    ask one-of patches with [pcolor = black and patch-at 0 2 != nobody and patch-at 0 -2 != nobody and patch-at 2 0 != nobody and patch-at -2 0 != nobody and patch-at 0 1 != nobody and patch-at 1 0 != nobody and [pcolor] of patch-at 1 0 = black] 
+    ask one-of patches with [pcolor = black and patch-at 0 2 != nobody and patch-at 0 -2 != nobody and patch-at 2 0 != nobody and patch-at -2 0 != nobody and patch-at 0 1 != nobody and patch-at 1 0 != nobody and [pcolor] of patch-at 1 0 = black and [pcolor] of patch-at 1 1 = black and [pcolor] of patch-at 0 1 = black] 
     [
       set pcolor green
       ask patch-at 1 0 [ set pcolor green ]
       ask patch-at 1 1 [ set pcolor green ]
       ask patch-at 0 1 [ set pcolor green ]
     ]
-    set zone zone - 1
+    set Varzone Varzone - 1
   ]
   
   ;Pintar Obstaculos pelo slider
@@ -261,18 +280,6 @@ to setup-patches
   [
     set pcolor gray
   ]
-  
-  
-end
-
-to Csmoke
-  if random 1000 > 999
-  [
-    ask one-of patches with [pcolor = black] 
-    [
-      set pcolor grey
-    ]
-  ]
 end
 
 to display-labels
@@ -286,51 +293,62 @@ to display-labels
     ]  
   ] 
 end
-
-
-to lixo
-  let PATCHaVOLTA patches at-points [[2 0] [-2 0] [0 2] [0 -2] [2 2] [2 -2] [-2 2] [-2 -2]]
-  ;Pintar entada dos bombeiros sempre na parte de baixo do mapa pintada a vermelho 2 quadrados
-  ask one-of patches with [pcolor = black and patch-at 0 -1 = nobody and patch-at 1 0 != nobody ] 
-  [
-    set pcolor red
-    ask patch-at 1 0 [set pcolor red]
-  ]
-  
-  
-  
-        if (x-vit != 0 or y-vit != 0) 
-      [
-        VaiSalvar
-      ]
-end
-
-
 ]]></code>
   <widgets>
-    <view x="530" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="-15" height="469" showTickCounter="true" patchSize="15.0" fontSize="10" wrappingAllowedY="false" width="469" tickCounterLabel="ticks" maxPycor="15" updateMode="0" maxPxcor="15" minPxcor="-15"></view>
-    <button x="20" y="55" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="500">GO</button>
-    <slider x="275" step="1" y="105" max="100" width="245" display="nvitimas" height="50" min="0" direction="Horizontal" default="25.0" variable="nvitimas"></slider>
-    <slider x="20" step="1" y="105" max="100" width="245" display="nbombeiros" height="50" min="1" direction="Horizontal" default="40.0" variable="nbombeiros"></slider>
-    <slider x="20" step="1" y="160" max="100" width="245" display="nfogos" height="50" min="0" direction="Horizontal" default="11.0" variable="nfogos"></slider>
-    <slider x="275" step="1" y="160" max="5" width="245" display="nsafezones" height="50" min="0" direction="Horizontal" default="1.0" variable="nsafezones"></slider>
-    <chooser x="20" y="220" height="60" variable="Disaster" current="2" display="Disaster" width="500" sizeVersion="0">
-      <choice type="string" value="More-Smoke-obstacles"></choice>
-      <choice type="string" value="Health-ticks-faster"></choice>
-      <choice type="string" value="Oxigen-tanks-malfunction"></choice>
-    </chooser>
-    <slider x="15" step="1" y="700" max="100" width="250" display="nOxygenTank" height="50" min="0" direction="Horizontal" default="11.0" variable="nOxygenTank"></slider>
-    <slider x="25" step="1" y="300" max="100" width="250" display="nArmadilhas" height="50" min="0" direction="Horizontal" default="13.0" variable="nArmadilhas"></slider>
-    <slider x="25" step="1" y="365" max="200" width="250" display="nObstaculos" height="50" min="20" direction="Horizontal" default="87.0" variable="nObstaculos"></slider>
-    <slider x="25" step="1" y="420" max="50" width="250" display="nTanques" height="50" min="1" direction="Horizontal" default="50.0" variable="nTanques"></slider>
-    <switch x="15" y="565" height="40" on="true" variable="show-energy?" width="110" display="show-energy?"></switch>
-    <slider x="25" step="1" y="475" max="20" width="250" display="nFumo" height="50" min="1" direction="Horizontal" default="20.0" variable="nFumo"></slider>
-    <button x="20" y="10" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="500">Setup</button>
-    <slider x="280" step="1" y="300" max="5" width="250" display="capacidade" height="50" min="0" direction="Horizontal" default="1.0" variable="capacidade"></slider>
-    <monitor x="1165" precision="17" y="25" height="60" fontSize="11" width="100" display="Vitimas">count vitimas</monitor>
-    <monitor x="1165" precision="17" y="95" height="60" fontSize="11" width="100" display="Bombeiros">count bombeiros</monitor>
-    <monitor x="1165" precision="17" y="165" height="60" fontSize="11" width="100" display="Vitimas Salvas">Vsalvas</monitor>
-    <monitor x="1030" precision="17" y="25" height="60" fontSize="11" width="100" display="Vitimas Mortas">vitimasmortas</monitor>
+    <view x="530" wrappingAllowedX="false" y="30" frameRate="30.0" minPycor="-15" height="469" showTickCounter="true" patchSize="15.0" fontSize="10" wrappingAllowedY="false" width="469" tickCounterLabel="ticks" maxPycor="15" updateMode="0" maxPxcor="15" minPxcor="-15"></view>
+    <button x="20" y="20" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="500">Setup</button>
+    <button x="20" y="65" height="40" disableUntilTicks="false" forever="true" kind="Observer" width="500">GO</button>
+    <slider x="20" step="1" y="203" max="300" width="245" display="nEnergiaBombeiro" height="50" min="100" direction="Horizontal" default="300.0" variable="nEnergiaBombeiro"></slider>
+    <slider x="270" step="1" y="200" max="300" width="245" display="nEnergiaVitima" height="50" min="100" direction="Horizontal" default="300.0" variable="nEnergiaVitima"></slider>
+    <slider x="270" step="1" y="145" max="100" width="245" display="nvitimas" height="50" min="0" direction="Horizontal" default="80.0" variable="nvitimas"></slider>
+    <slider x="20" step="1" y="260" max="5" width="495" display="LimiteCapacidade" height="50" min="1" direction="Horizontal" default="5.0" variable="LimiteCapacidade"></slider>
+    <slider x="20" step="1" y="145" max="100" width="245" display="nbombeiros" height="50" min="20" direction="Horizontal" default="60.0" variable="nbombeiros"></slider>
+    <note x="20" y="320" backgroundDark="0" fontSize="16" width="190" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Cenário</note>
+    <switch x="20" y="470" height="50" on="true" variable="show-energy?" width="495" display="show-energy?"></switch>
+    <slider x="20" step="1" y="355" max="6" width="245" display="nsafezones" height="50" min="2" direction="Horizontal" default="6.0" variable="nsafezones"></slider>
+    <slider x="20" step="1" y="410" max="200" width="245" display="nObstaculos" height="50" min="20" direction="Horizontal" default="180.0" variable="nObstaculos"></slider>
+    <slider x="270" step="1" y="355" max="20" width="245" display="nFumo" height="50" min="1" direction="Horizontal" default="20.0" variable="nFumo"></slider>
+    <slider x="270" step="1" y="410" max="50" width="245" display="nTanques" height="50" min="1" direction="Horizontal" default="50.0" variable="nTanques"></slider>
+    <note x="20" y="110" backgroundDark="0" fontSize="16" width="190" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Agentes</note>
+    <note x="1275" y="15" backgroundDark="0" fontSize="16" width="85" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Estatisticas</note>
+    <plot x="1325" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="nvitimas" y="300" xMin="0.0" height="210" legend="false" xMax="100.0" yMin="0.0" width="290" xAxis="ticks" display="Vitmas no Mapa">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="default" color="-16777216" legend="true">
+        <setup></setup>
+        <update>plot count vitimas</update>
+      </pen>
+    </plot>
+    <plot x="1325" autoPlotX="true" yMax="300.0" autoPlotY="true" yAxis="Oxigénio" y="515" xMin="0.0" height="210" legend="false" xMax="100.0" yMin="0.0" width="290" xAxis="Ticks" display="Media Oxigenio vitimas">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="default" color="-16777216" legend="true">
+        <setup></setup>
+        <update>plot mean [energia] of vitimas</update>
+      </pen>
+    </plot>
+    <plot x="1030" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="Oxgénio" y="515" xMin="0.0" height="210" legend="false" xMax="100.0" yMin="0.0" width="290" xAxis="Ticks" display="Média de oxigénio de bombeiros">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="default" color="-16777216" legend="true">
+        <setup></setup>
+        <update>plot mean [energia] of bombeiros</update>
+      </pen>
+    </plot>
+    <plot x="1030" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="nbombeiros" y="300" xMin="0.0" height="210" legend="false" xMax="100.0" yMin="0.0" width="290" xAxis="ticks" display="Bombeiros Vivos">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="0" display="default" color="-16777216" legend="true">
+        <setup></setup>
+        <update>plot count bombeiros</update>
+      </pen>
+    </plot>
+    <note x="1285" y="260" backgroundDark="0" fontSize="16" width="65" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Gráficos</note>
+    <monitor x="1175" precision="17" y="55" height="60" fontSize="11" width="145" display="Vitimas">count vitimas</monitor>
+    <monitor x="1325" precision="17" y="55" height="60" fontSize="11" width="145" display="Bombeiros">count bombeiros</monitor>
+    <monitor x="1175" precision="17" y="120" height="60" fontSize="11" width="145" display="Vitimas Asfixiadas">vitimasmortas</monitor>
+    <monitor x="1325" precision="17" y="120" height="60" fontSize="11" width="145" display="Bombeiros Asfixiados">bombeirosmortos</monitor>
+    <monitor x="1175" precision="17" y="185" height="60" fontSize="11" width="295" display="Vitimas Salvas">Vsalvas</monitor>
   </widgets>
   <info>## WHAT IS IT?
 
