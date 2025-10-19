@@ -303,13 +303,11 @@ end
     <slider x="270" step="1" y="145" max="100" width="245" display="nvitimas" height="50" min="0" direction="Horizontal" default="80.0" variable="nvitimas"></slider>
     <slider x="20" step="1" y="260" max="5" width="495" display="LimiteCapacidade" height="50" min="1" direction="Horizontal" default="5.0" variable="LimiteCapacidade"></slider>
     <slider x="20" step="1" y="145" max="100" width="245" display="nbombeiros" height="50" min="20" direction="Horizontal" default="60.0" variable="nbombeiros"></slider>
-    <note x="20" y="320" backgroundDark="0" fontSize="16" width="190" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Cenário</note>
     <switch x="20" y="470" height="50" on="true" variable="show-energy?" width="495" display="show-energy?"></switch>
     <slider x="20" step="1" y="355" max="6" width="245" display="nsafezones" height="50" min="2" direction="Horizontal" default="6.0" variable="nsafezones"></slider>
     <slider x="20" step="1" y="410" max="200" width="245" display="nObstaculos" height="50" min="20" direction="Horizontal" default="180.0" variable="nObstaculos"></slider>
     <slider x="270" step="1" y="355" max="20" width="245" display="nFumo" height="50" min="1" direction="Horizontal" default="20.0" variable="nFumo"></slider>
     <slider x="270" step="1" y="410" max="50" width="245" display="nTanques" height="50" min="1" direction="Horizontal" default="50.0" variable="nTanques"></slider>
-    <note x="20" y="110" backgroundDark="0" fontSize="16" width="190" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Agentes</note>
     <note x="1275" y="15" backgroundDark="0" fontSize="16" width="85" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Estatisticas</note>
     <plot x="1325" autoPlotX="true" yMax="100.0" autoPlotY="true" yAxis="nvitimas" y="300" xMin="0.0" height="210" legend="false" xMax="100.0" yMin="0.0" width="290" xAxis="ticks" display="Vitmas no Mapa">
       <setup></setup>
@@ -349,6 +347,8 @@ end
     <monitor x="1175" precision="17" y="120" height="60" fontSize="11" width="145" display="Vitimas Asfixiadas">vitimasmortas</monitor>
     <monitor x="1325" precision="17" y="120" height="60" fontSize="11" width="145" display="Bombeiros Asfixiados">bombeirosmortos</monitor>
     <monitor x="1175" precision="17" y="185" height="60" fontSize="11" width="295" display="Vitimas Salvas">Vsalvas</monitor>
+    <note x="20" y="110" backgroundDark="0" fontSize="16" width="215" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Agentes</note>
+    <note x="20" y="320" backgroundDark="0" fontSize="16" width="205" markdown="false" height="30" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Configurações de Cenário</note>
   </widgets>
   <info>## WHAT IS IT?
 
